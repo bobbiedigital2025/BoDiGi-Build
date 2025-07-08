@@ -1,0 +1,29 @@
+BoDiGi-Build™ Proprietary Use License v1.0
+
+Copyright (c) 2025 Bobbie Gray, Bobbie Digital
+
+This software is licensed, not sold. By accessing, copying, modifying, or distributing this software, you agree to the following terms:
+
+1. **Commercial License Required**:
+   - Purchase of a license is required for any commercial use, redistribution, or modification of this code.
+   - Contact marketing-support@bobbiedigital.com for license inquiries.
+
+2. **Prohibited Actions Without License**:
+   - Copying, redistributing, or selling this code in whole or part
+   - Removing or modifying copyright notices
+   - Using this code to build competing services without express permission
+
+3. **Permitted Actions**:
+   - Personal, non-commercial testing
+   - Educational use for personal learning purposes
+
+4. **Liability Disclaimer**:
+   This software is provided "as is," without warranties or guarantees of any kind. Bobbie Digital is not liable for any damages arising from use.
+
+5. **MCP Integration Notice**:
+   - This software utilizes proprietary MCP (Model Context Protocol) technology.
+   - Unauthorized extraction or reverse-engineering of MCP logic is strictly prohibited.
+
+Violation of these terms may result in legal action.
+
+All rights reserved — Bobbie Gray, Bobbie Digital, 2025.
