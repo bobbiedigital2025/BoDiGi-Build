@@ -1,0 +1,22 @@
+{
+  "name": "bodigi-build-backend",
+  "version": "1.0.0",
+  "description": "BoDiGi-Build API — Node.js + Express backend deployed on Render",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": ["bodigi", "saas", "api", "mcp", "express"],
+  "author": "Bobbie Digital",
+  "license": "SEE LICENSE IN ../LICENSE.txt",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.5.0",
+    "express": "^4.21.2"
+  }
+}

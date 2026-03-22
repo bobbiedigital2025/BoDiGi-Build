@@ -1,0 +1,40 @@
+# ============================================================
+# Render deployment configuration for BoDiGi-Build backend
+# Docs: https://render.com/docs/blueprint-spec
+# ============================================================
+
+services:
+  - type: web
+    name: bodigi-build-api
+    runtime: node
+    region: oregon
+    plan: free
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: node server.js
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 4000
+      # Set FRONTEND_URL to your Netlify site URL after first deploy
+      - key: FRONTEND_URL
+        sync: false
+      # Supabase
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      # Stripe
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      # App secrets
+      - key: JWT_SECRET
+        generateValue: true
+      - key: MCP_SECRET
+        generateValue: true
