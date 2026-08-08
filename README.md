@@ -77,18 +77,42 @@ BoDiGi-Build now supports a project-level skills catalog at:
 
 At backend startup, the catalog is loaded and exposed through:
 
-- `GET /api/agent/skills` → list loaded skills and metadata
-- `POST /api/agent/skills/:skillId/invoke` → validate required inputs and return mapped action template
+- `GET /api/agent/skills` → list loaded skills, approval gates, and metadata
+- `POST /api/agent/skills/:skillId/invoke` → enforce required inputs, dependencies, and approval-gate status before returning mapped action template
 
-Supported initial skills:
+Supported multi-agent team skills:
+- `chief-architect`
+- `program-manager`
+- `devops-sre-agent`
+- `frontend-lead`
+- `backend-lead`
 - `code-implementer`
 - `code-reviewer`
-- `test-runner`
+- `qa-test-agent`
+- `security-agent`
+- `docs-agent`
+- `legal-compliance-agent`
+- `analytics-agent`
+- `monetization-agent`
+- `admin-ops-agent`
 - `playwright-browser-automator`
+
+Mandatory approval gates:
+- `gate-0-scope-approval`
+- `gate-1-architecture-approval`
+- `gate-2-build-approval`
+- `gate-3-test-approval`
+- `gate-4-compliance-approval`
+- `gate-5-release-approval`
+
+Invoke payloads should include:
+- `completedSkills` (array of completed dependency skill IDs)
+- `approvalGates` (object where each required gate ID has status `approved`)
 
 Optional environment override:
 
 - `SKILLS_MD_PATH=/absolute/path/to/skills.md`
+- `AGENT_API_TOKEN=<token>` (if set, requests to `/api/agent/skills` and `/api/agent/skills/:skillId/invoke` must include `x-agent-api-token`)
 
 ## 🔒 Licensing & Terms
 
