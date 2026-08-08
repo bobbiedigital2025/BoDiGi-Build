@@ -1,9 +1,21 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
+import {
+  getSkillsCatalog,
+  initializeSkillsCatalog,
+  invokeSkill,
+} from './skillsCatalog.js';
 
 const app = express();
 const PORT = process.env.PORT || 4000;
+const startupCatalog = initializeSkillsCatalog();
+
+if (startupCatalog.warning) {
+  console.warn(startupCatalog.warning);
+} else {
+  console.log(`Skills catalog loaded (${startupCatalog.skills.length} skills).`);
+}
 
 // ---------------------------------------------------------------------------
 // Middleware
@@ -11,7 +23,7 @@ const PORT = process.env.PORT || 4000;
 app.use(cors({
   origin: process.env.FRONTEND_URL || '*',
 }));
-app.use(express.json());
+app.use(express.json({ limit: '100kb' }));
 
 // ---------------------------------------------------------------------------
 // Routes
@@ -33,7 +45,40 @@ app.get('/', (_req, res) => {
 
 // Agent status endpoint (placeholder for MCP / A2A integration)
 app.get('/api/agent/status', (_req, res) => {
-  res.json({ agent: 'Boltz', status: 'ready', mcp: true, a2a: true });
+  const catalog = getSkillsCatalog();
+
+  res.json({
+    agent: 'Boltz',
+    status: 'ready',
+    mcp: true,
+    a2a: true,
+    skillsLoaded: catalog.skills.length,
+    skillsCatalogHealthy: !catalog.warning,
+  });
+});
+
+// Agent skills catalog endpoint
+app.get('/api/agent/skills', (_req, res) => {
+  const catalog = getSkillsCatalog();
+
+  res.json({
+    loadedAt: catalog.loadedAt,
+    warning: catalog.warning,
+    skills: catalog.skills,
+  });
+});
+
+// Agent skill invoke endpoint
+app.post('/api/agent/skills/:skillId/invoke', (req, res) => {
+  const { skillId } = req.params;
+  const payload = req.body || {};
+  const result = invokeSkill(skillId, payload);
+
+  if (!result.ok) {
+    return res.status(400).json(result);
+  }
+
+  return res.json(result);
 });
 
 // ---------------------------------------------------------------------------

@@ -17,6 +17,7 @@ Welcome! This project is an AI-driven, automation-first application builder desi
 - Text and voice prompts for AI-driven build control
 - Usage dashboard with quotas and billing insights
 - Cost-efficient, beginner-friendly setup
+- `skills.md` catalog support for agent capabilities and safe skill invocation
 
 ## 📦 Folder Structure
 
@@ -67,6 +68,27 @@ The `netlify.toml` at the root configures automatic deployment of the frontend:
 The `render.yaml` at the root configures the backend web service:
 - Runtime: Node.js
 - Start command: `node server.js`
+
+## 🧩 Skills Catalog (`skills.md`)
+
+BoDiGi-Build now supports a project-level skills catalog at:
+
+`skills.md` (project root)
+
+At backend startup, the catalog is loaded and exposed through:
+
+- `GET /api/agent/skills` → list loaded skills and metadata
+- `POST /api/agent/skills/:skillId/invoke` → validate required inputs and return mapped action template
+
+Supported initial skills:
+- `code-implementer`
+- `code-reviewer`
+- `test-runner`
+- `playwright-browser-automator`
+
+Optional environment override:
+
+- `SKILLS_MD_PATH=/absolute/path/to/skills.md`
 
 ## 🔒 Licensing & Terms
 
