@@ -80,6 +80,16 @@ At backend startup, the catalog is loaded and exposed through:
 - `GET /api/agent/skills` → list loaded skills, approval gates, and metadata
 - `POST /api/agent/skills/:skillId/invoke` → enforce required inputs, dependencies, and approval-gate status before returning mapped action template
 - `GET /api/agent/deployment/profiles` → list deployment profiles and selected default (supports `?profile=<profileId>` override preview)
+- `GET /api/agent/mcp/discovery` → discover and prioritize MCP servers (supports `capability` and `includeUnhealthy=true`)
+- `POST /api/agent/mcp/servers/register` → register or update MCP server records
+- `POST /api/agent/mcp/servers/:serverId/health` → update MCP server health status/latency/error
+- `GET /api/agent/mcp/servers/select` → select best server and failover hints for a capability
+- `POST /api/agent/mcp/auto-fetch` → auto-fetch MCP resources with cache, TTL, and stale fallback controls
+- `POST /api/agent/a2a/handoffs` → create secure A2A handoff package for agent ownership transfer
+- `GET /api/agent/a2a/handoffs/:handoffId` → inspect handoff status, ownership, and history
+- `POST /api/agent/a2a/handoffs/:handoffId/accept` → receiving agent accepts handoff ownership
+- `POST /api/agent/a2a/handoffs/:handoffId/resume` → resume accepted handoff with optional token validation
+- `GET /api/agent/observability` → metrics for discovery/lifecycle/auto-fetch/handoff outcomes
 
 Supported multi-agent team skills:
 - `chief-architect`
@@ -123,12 +133,22 @@ Optional environment override:
 - `DEPLOYMENT_PROFILE_MODE=user-preferred`
 - `DEFAULT_DEPLOYMENT_PROFILE=vercel-docker-n8n`
 - `MCP_PROTOCOL_VERSION=2`
+- `MCP_DISCOVERY_SEED=[{"id":"mcp-a","name":"MCP A","url":"https://mcp-a.example.com","priority":100,"status":"online","capabilities":["context-fetch"]}]`
+- `MCP_AUTO_FETCH_TTL_MS=60000`
+- `A2A_HANDOFF_SECRET=<shared-secret-for-handoff-signatures>`
 
 Default deployment profile behavior:
 - Prefer `vercel-docker-n8n` for deployment-related skill invocations.
 - Allow override by passing `deployment_profile` in invoke payload.
 - Auto-inject selected profile details and MCP-2 version context into deployment skill inputs.
 - Set `DEPLOYMENT_PROFILE_MODE=locked-default` to disable request-level profile overrides.
+
+MCP/A2A orchestration behavior:
+- Discovery validates server metadata, enforces http/https URLs, and ranks by priority + health.
+- Lifecycle supports server registration, health updates, and automatic failover when primary fetch fails.
+- Auto-fetch caches resources by capability/resource key, refreshes by TTL, and can return stale cache when all fetch attempts fail.
+- Handoff flow creates integrity checksums/signatures, tracks ownership transfer history, and supports resume-token-gated continuation.
+- Observability reports metrics for successful and failed discovery, lifecycle operations, auto-fetches, and A2A handoffs.
 
 ## 🔒 Licensing & Terms
 
