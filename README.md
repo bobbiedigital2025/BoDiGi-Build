@@ -129,7 +129,8 @@ Invoke payloads should include:
 Optional environment override:
 
 - `SKILLS_MD_PATH=/absolute/path/to/skills.md`
-- `AGENT_API_TOKEN=<token>` (if set, requests to `/api/agent/skills`, `/api/agent/skills/:skillId/invoke`, and `/api/agent/deployment/profiles` must include `x-agent-api-token`)
+- `AGENT_API_TOKEN=<token>` (required by default for all `/api/agent/*` orchestration endpoints via `x-agent-api-token`)
+- `AGENT_API_ALLOW_ANON=false` (set to `true` only for controlled development scenarios without token auth)
 - `DEPLOYMENT_PROFILE_MODE=user-preferred`
 - `DEFAULT_DEPLOYMENT_PROFILE=vercel-docker-n8n`
 - `MCP_PROTOCOL_VERSION=2`

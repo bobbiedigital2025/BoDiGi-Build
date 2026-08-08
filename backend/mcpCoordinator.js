@@ -1,4 +1,5 @@
-import { createHash, createHmac } from 'crypto';
+import { createHash, createHmac, randomUUID } from 'crypto';
+import { timingSafeTokenMatch } from './security.js';
 
 const DEFAULT_CACHE_TTL_MS = 60_000;
 const MAX_CONTEXT_BYTES = 50_000;
@@ -141,6 +142,8 @@ export class McpCoordinator {
       return { ok: false, error: `Server '${id}' has unsupported status '${status}'.` };
     }
 
+    const normalizedFailureCount = Math.max(0, Number.parseInt(server.failureCount, 10) || 0);
+
     return {
       ok: true,
       value: {
@@ -150,7 +153,7 @@ export class McpCoordinator {
         status,
         priority: parsePositiveInt(server.priority, 50),
         healthScore: parsePositiveInt(server.healthScore, status === 'online' ? 100 : 70),
-        failureCount: parsePositiveInt(server.failureCount, 0) - 1 < 0 ? 0 : parsePositiveInt(server.failureCount, 0),
+        failureCount: normalizedFailureCount,
         mcpVersion: asString(server.mcpVersion) || (process.env.MCP_PROTOCOL_VERSION || '2'),
         capabilities: normalizeCapabilities(server.capabilities),
         resources: server.resources && typeof server.resources === 'object' ? clone(server.resources) : {},
@@ -224,7 +227,7 @@ export class McpCoordinator {
       server.failureCount += 1;
       server.healthScore = Math.max(0, server.healthScore - 30);
     }
-    if (latencyMs > 0 && latencyMs > 2_000) {
+    if (latencyMs > 2_000) {
       server.healthScore = Math.max(0, server.healthScore - 5);
     }
     server.updatedAt = toIsoTimestamp();
@@ -343,7 +346,14 @@ export class McpCoordinator {
     const excluded = [];
     const attempts = [];
 
-    while (true) {
+    const normalizedCapability = asString(capability);
+    const matchingServerCount = [...this.servers.values()].filter((server) => (
+      server.status !== 'offline'
+      && (!normalizedCapability || server.capabilities.includes(normalizedCapability))
+    )).length;
+    let attemptsRemaining = Math.max(matchingServerCount, 1);
+    while (attemptsRemaining > 0) {
+      attemptsRemaining -= 1;
       const selection = this.selectServer({ capability, excludeServerIds: excluded });
       if (!selection.ok) {
         break;
@@ -376,10 +386,19 @@ export class McpCoordinator {
       } catch (error) {
         excluded.push(serverId);
         this.track('lifecycle', 'failovers');
-        this.updateServerHealth(serverId, {
-          status: excluded.length > 1 ? 'offline' : 'degraded',
+        const healthUpdate = this.updateServerHealth(serverId, {
+          status: 'degraded',
           error: error.message,
         });
+        if (healthUpdate.ok && healthUpdate.server.failureCount >= 2) {
+          const server = this.servers.get(serverId);
+          if (server) {
+            server.status = 'offline';
+            server.lastError = error.message;
+            server.updatedAt = toIsoTimestamp();
+            this.track('lifecycle', 'healthUpdated');
+          }
+        }
         attempts.push({
           serverId,
           error: error.message,
@@ -455,7 +474,7 @@ export class McpCoordinator {
       };
     }
 
-    const handoffId = `handoff-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+    const handoffId = `handoff-${randomUUID()}`;
     const contextDigest = createHash('sha256').update(serializedContext).digest('hex');
     const signature = this.buildHandoffSignature({
       handoffId,
@@ -537,7 +556,11 @@ export class McpCoordinator {
       this.track('handoff', 'rejected');
       return { ok: false, code: 'HANDOFF_FORBIDDEN', error: 'Only the receiving agent can resume this handoff.' };
     }
-    if (handoff.resumeToken && handoff.resumeToken !== normalizedResumeToken) {
+    if (handoff.security?.requiresResumeToken && !normalizedResumeToken) {
+      this.track('handoff', 'rejected');
+      return { ok: false, code: 'INVALID_RESUME_TOKEN', error: 'Resume token is required.' };
+    }
+    if (handoff.resumeToken && !timingSafeTokenMatch(handoff.resumeToken, normalizedResumeToken)) {
       this.track('handoff', 'rejected');
       return { ok: false, code: 'INVALID_RESUME_TOKEN', error: 'Resume token is invalid.' };
     }
@@ -577,4 +600,6 @@ export class McpCoordinator {
   }
 }
 
-export const mcpCoordinator = new McpCoordinator();
+export function createDefaultMcpCoordinator() {
+  return new McpCoordinator();
+}

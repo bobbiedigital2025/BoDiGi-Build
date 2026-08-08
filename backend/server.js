@@ -1,22 +1,24 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
-import { timingSafeEqual } from 'crypto';
 import {
   deploymentSkillIds,
   getSkillsCatalog,
   initializeSkillsCatalog,
   invokeSkill,
 } from './skillsCatalog.js';
+import { timingSafeTokenMatch } from './security.js';
 import {
   getDeploymentProfiles,
   resolvePreferredDeploymentProfile,
 } from './deploymentProfiles.js';
-import { mcpCoordinator } from './mcpCoordinator.js';
+import { createDefaultMcpCoordinator } from './mcpCoordinator.js';
 
 const app = express();
 const PORT = process.env.PORT || 4000;
 const AGENT_API_TOKEN = process.env.AGENT_API_TOKEN || '';
+const ALLOW_ANON_AGENT_API = String(process.env.AGENT_API_ALLOW_ANON || '').toLowerCase() === 'true';
+const mcpCoordinator = createDefaultMcpCoordinator();
 const startupCatalog = initializeSkillsCatalog();
 
 if (startupCatalog.warning) {
@@ -26,7 +28,11 @@ if (startupCatalog.warning) {
 }
 
 if (!AGENT_API_TOKEN) {
-  console.warn('AGENT_API_TOKEN is not set; agent skill APIs are running without token auth.');
+  if (ALLOW_ANON_AGENT_API) {
+    console.error('AGENT_API_TOKEN is not set and AGENT_API_ALLOW_ANON=true; /api/agent/* endpoints are publicly accessible.');
+  } else {
+    console.warn('AGENT_API_TOKEN is not set; /api/agent/* endpoints will reject requests with 401 until a token is configured.');
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -39,20 +45,17 @@ app.use(express.json({ limit: '100kb' }));
 
 function requireAgentApiToken(req, res, next) {
   if (!AGENT_API_TOKEN) {
-    return next();
+    if (ALLOW_ANON_AGENT_API) {
+      return next();
+    }
+    return res.status(401).json({
+      error: 'Agent API token is required.',
+      code: 'AGENT_API_TOKEN_REQUIRED',
+    });
   }
 
   const providedToken = req.header('x-agent-api-token') || '';
-  const expectedTokenBuffer = Buffer.from(AGENT_API_TOKEN, 'utf8');
-  const providedTokenBuffer = Buffer.from(providedToken, 'utf8');
-  const maxLength = Math.max(expectedTokenBuffer.length, providedTokenBuffer.length, 1);
-  const paddedExpectedToken = Buffer.alloc(maxLength);
-  const paddedProvidedToken = Buffer.alloc(maxLength);
-  expectedTokenBuffer.copy(paddedExpectedToken);
-  providedTokenBuffer.copy(paddedProvidedToken);
-
-  const tokensMatch = timingSafeEqual(paddedExpectedToken, paddedProvidedToken);
-  const isValidToken = tokensMatch && expectedTokenBuffer.length === providedTokenBuffer.length;
+  const isValidToken = timingSafeTokenMatch(AGENT_API_TOKEN, providedToken);
 
   if (!isValidToken) {
     res.set('WWW-Authenticate', 'Token realm="agent-api"');
@@ -81,7 +84,7 @@ app.get('/', (_req, res) => {
 });
 
 // Agent status endpoint (placeholder for MCP / A2A integration)
-app.get('/api/agent/status', (_req, res) => {
+app.get('/api/agent/status', requireAgentApiToken, (_req, res) => {
   const catalog = getSkillsCatalog();
   const observability = mcpCoordinator.getObservability();
 

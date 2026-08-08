@@ -43,7 +43,7 @@ test('discovery prioritizes healthiest and highest priority servers', () => {
   assert.equal(result.servers[0].id, 'secondary');
 });
 
-test('auto-fetch falls back to secondary server when primary fails', () => {
+test('auto-fetch falls back to secondary server when primary fetch misses resource', () => {
   const coordinator = createCoordinatorForTests();
   coordinator.registerServer({
     id: 'primary',
@@ -54,6 +54,9 @@ test('auto-fetch falls back to secondary server when primary fails', () => {
     capabilities: ['context-fetch'],
     resources: {},
   });
+  const selection = coordinator.selectServer({ capability: 'context-fetch' });
+  assert.equal(selection.ok, true);
+  assert.equal(selection.server.id, 'primary');
 
   const result = coordinator.autoFetch({
     resourceKey: 'config',
@@ -66,6 +69,7 @@ test('auto-fetch falls back to secondary server when primary fails', () => {
   assert.equal(result.serverId, 'secondary');
   assert.equal(result.attempts.length, 1);
   assert.equal(result.attempts[0].serverId, 'primary');
+  assert.match(result.attempts[0].error, /unavailable/i);
 });
 
 test('auto-fetch returns stale cache when all servers fail', async () => {
