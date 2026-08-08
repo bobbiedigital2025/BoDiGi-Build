@@ -79,6 +79,7 @@ At backend startup, the catalog is loaded and exposed through:
 
 - `GET /api/agent/skills` → list loaded skills, approval gates, and metadata
 - `POST /api/agent/skills/:skillId/invoke` → enforce required inputs, dependencies, and approval-gate status before returning mapped action template
+- `GET /api/agent/deployment/profiles` → list deployment profiles and selected default (supports `?profile=<profileId>` override preview)
 
 Supported multi-agent team skills:
 - `chief-architect`
@@ -96,6 +97,10 @@ Supported multi-agent team skills:
 - `monetization-agent`
 - `admin-ops-agent`
 - `saas-product-ops-agent`
+- `deployment-platform-agent`
+- `n8n-automation-agent`
+- `deployment-validation-agent`
+- `deployment-verification-agent`
 - `playwright-browser-automator`
 
 Mandatory approval gates:
@@ -105,6 +110,7 @@ Mandatory approval gates:
 - `gate-3-test-approval`
 - `gate-4-compliance-approval`
 - `gate-5-release-approval`
+- `gate-6-deployment-approval`
 
 Invoke payloads should include:
 - `completedSkills` (array of completed dependency skill IDs)
@@ -114,6 +120,14 @@ Optional environment override:
 
 - `SKILLS_MD_PATH=/absolute/path/to/skills.md`
 - `AGENT_API_TOKEN=<token>` (if set, requests to `/api/agent/skills` and `/api/agent/skills/:skillId/invoke` must include `x-agent-api-token`)
+- `DEPLOYMENT_PROFILE_MODE=user-preferred`
+- `DEFAULT_DEPLOYMENT_PROFILE=vercel-docker-n8n`
+- `MCP_PROTOCOL_VERSION=2`
+
+Default deployment profile behavior:
+- Prefer `vercel-docker-n8n` for deployment-related skill invocations.
+- Allow override by passing `deployment_profile` in invoke payload.
+- Auto-inject selected profile details and MCP-2 version context into deployment skill inputs.
 
 ## 🔒 Licensing & Terms
 

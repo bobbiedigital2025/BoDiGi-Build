@@ -7,11 +7,21 @@ import {
   initializeSkillsCatalog,
   invokeSkill,
 } from './skillsCatalog.js';
+import {
+  getDeploymentProfiles,
+  resolvePreferredDeploymentProfile,
+} from './deploymentProfiles.js';
 
 const app = express();
 const PORT = process.env.PORT || 4000;
 const AGENT_API_TOKEN = process.env.AGENT_API_TOKEN || '';
 const startupCatalog = initializeSkillsCatalog();
+const deploymentSkillIds = new Set([
+  'deployment-platform-agent',
+  'deployment-validation-agent',
+  'deployment-verification-agent',
+  'n8n-automation-agent',
+]);
 
 if (startupCatalog.warning) {
   console.warn(startupCatalog.warning);
@@ -99,6 +109,16 @@ app.get('/api/agent/skills', requireAgentApiToken, (_req, res) => {
 app.post('/api/agent/skills/:skillId/invoke', requireAgentApiToken, (req, res) => {
   const { skillId } = req.params;
   const payload = req.body || {};
+
+  if (deploymentSkillIds.has(skillId)) {
+    const preferredDeployment = resolvePreferredDeploymentProfile(payload.deployment_profile);
+    payload.deployment_profile = preferredDeployment.profile.id;
+    payload.deployment_profile_mode = preferredDeployment.mode;
+    payload.deployment_profile_source = preferredDeployment.source;
+    payload.mcp_version = preferredDeployment.profile.mcpVersion || '2';
+    payload.deployment_profile_details = preferredDeployment.profile;
+  }
+
   const result = invokeSkill(skillId, payload);
 
   if (!result.ok) {
@@ -106,6 +126,21 @@ app.post('/api/agent/skills/:skillId/invoke', requireAgentApiToken, (req, res) =
   }
 
   return res.json(result);
+});
+
+// Deployment profile endpoint
+app.get('/api/agent/deployment/profiles', requireAgentApiToken, (req, res) => {
+  const requestedProfileId = req.query.profile || '';
+  const selected = resolvePreferredDeploymentProfile(requestedProfileId);
+
+  res.json({
+    mode: selected.mode,
+    selectedProfileId: selected.profile?.id,
+    selectedProfileSource: selected.source,
+    mcpVersion: selected.profile?.mcpVersion || '2',
+    defaultProfileId: selected.defaultProfileId,
+    profiles: getDeploymentProfiles(),
+  });
 });
 
 // ---------------------------------------------------------------------------

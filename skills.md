@@ -38,6 +38,12 @@
 - Required Status: approved
 - Rule: Final go-live is blocked unless release approval is explicitly granted.
 
+### Gate: Deployment Approval
+- ID: gate-6-deployment-approval
+- Approvers: devops-sre-agent, qa-test-agent, security-agent, owner
+- Required Status: approved
+- Rule: Deployment profile, pre-deploy checks, and post-deploy verification controls must be explicitly approved.
+
 ## SaaS Delivery Baseline
 
 - Subscription and billing flows with transparent pricing and cancellation handling.
@@ -45,6 +51,8 @@
 - Privacy-aware analytics, ad/consent controls, and data handling disclosures.
 - Reliability standards including monitoring, incident response, rollback, and release notes.
 - Accessibility-focused UX behavior and documentation quality for customer ease of use.
+- Deployment readiness defaults for Vercel + Docker + n8n with secure automation and rollback.
+- MCP-2 and advanced-tech controls for orchestrated skill execution and deployment safety.
 
 ## Skill: Chief Architect Agent
 - ID: chief-architect
@@ -210,6 +218,50 @@
 - Required Gate: gate-5-release-approval
 - Quality Bar: SaaS lifecycle flows are complete, measurable, supportable, and compliant with platform policies.
 - Refusal Rules: Refuse release-readiness claims without billing integrity, entitlement logic, and operational support coverage.
+
+## Skill: Deployment Platform Agent
+- ID: deployment-platform-agent
+- Role: Defines deployment profile strategy and infrastructure topology for release.
+- What: Selects preferred deployment profile and produces environment topology using Vercel + Docker defaults unless explicitly overridden, with MCP-2 compatibility requirements.
+- Inputs: architecture_decision_record, deployment_requirements, deployment_profile
+- Output: deployment_profile_plan
+- Dependencies: chief-architect, devops-sre-agent
+- Required Gate: gate-5-release-approval
+- Quality Bar: Profile selection, topology, scaling path, and rollback boundaries are explicit.
+- Refusal Rules: Refuse deployments with undefined target profile, missing rollback strategy, or unsafe runtime topology.
+
+## Skill: n8n Automation Agent
+- ID: n8n-automation-agent
+- Role: Implements lifecycle automation workflows for release operations.
+- What: Designs n8n hooks for build/deploy triggers, health checks and alerts, rollback triggers, and scheduled maintenance with MCP-2 event-aware orchestration.
+- Inputs: deployment_profile_plan, release_strategy, operational_channels
+- Output: n8n_automation_spec
+- Dependencies: deployment-platform-agent, devops-sre-agent
+- Required Gate: gate-6-deployment-approval
+- Quality Bar: Automation hooks are auditable, deterministic, and mapped to deployment lifecycle controls.
+- Refusal Rules: Refuse non-auditable automations and unsafe workflow permissions.
+
+## Skill: Deployment Validation Agent
+- ID: deployment-validation-agent
+- Role: Verifies pre-deploy quality and security readiness.
+- What: Executes and validates lint/build/tests, security checks, and deployment config completeness for profile-specific requirements.
+- Inputs: changed_paths, ci_results, security_results, deployment_profile
+- Output: predeploy_validation_report
+- Dependencies: qa-test-agent, security-agent, deployment-platform-agent
+- Required Gate: gate-6-deployment-approval
+- Quality Bar: Pre-deploy evidence is complete, reproducible, and mapped to release criteria.
+- Refusal Rules: Refuse deployment approval when quality, security, or configuration evidence is incomplete.
+
+## Skill: Deployment Verification Agent
+- ID: deployment-verification-agent
+- Role: Confirms post-deploy health and rollback safety.
+- What: Runs smoke, uptime, and API checks, then validates rollback readiness after deployment.
+- Inputs: release_id, deployment_profile, health_endpoints, smoke_tests
+- Output: postdeploy_verification_report
+- Dependencies: deployment-validation-agent, qa-test-agent, n8n-automation-agent
+- Required Gate: gate-6-deployment-approval
+- Quality Bar: Post-deploy checks are green with clear rollback execution criteria and alert wiring.
+- Refusal Rules: Refuse release completion when post-deploy checks fail or rollback is unverified.
 
 ## Skill: Playwright Browser Automator
 - ID: playwright-browser-automator

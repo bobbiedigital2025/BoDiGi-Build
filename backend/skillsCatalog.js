@@ -23,6 +23,10 @@ const mappedSkillActions = {
   'admin-ops-agent': 'admin-ops-agent',
   'saas-product-ops-agent': 'saas-ops-agent',
   'playwright-browser-automator': 'playwright-agent',
+  'deployment-platform-agent': 'deployment-agent',
+  'n8n-automation-agent': 'automation-agent',
+  'deployment-validation-agent': 'release-quality-agent',
+  'deployment-verification-agent': 'post-release-agent',
 };
 
 function resolveSkillsPath() {
