@@ -95,6 +95,7 @@ Supported multi-agent team skills:
 - `analytics-agent`
 - `monetization-agent`
 - `admin-ops-agent`
+- `saas-product-ops-agent`
 - `playwright-browser-automator`
 
 Mandatory approval gates:

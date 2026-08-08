@@ -21,6 +21,7 @@ const mappedSkillActions = {
   'analytics-agent': 'analytics-agent',
   'monetization-agent': 'monetization-agent',
   'admin-ops-agent': 'admin-ops-agent',
+  'saas-product-ops-agent': 'saas-ops-agent',
   'playwright-browser-automator': 'playwright-agent',
 };
 
@@ -52,6 +53,19 @@ function parseRules(value = '') {
     .split(';')
     .map((item) => item.trim())
     .filter(Boolean);
+}
+
+function finalizeParsedSkill(skill) {
+  if (!skill) {
+    return skill;
+  }
+
+  if (skill.refusalRules.length === 0 && skill.legacySafety) {
+    skill.refusalRules = parseRules(skill.legacySafety);
+  }
+  delete skill.legacySafety;
+
+  return skill;
 }
 
 function parseApprovalGatesMarkdown(content) {
@@ -140,11 +154,7 @@ function parseSkillsMarkdown(content) {
 
     if (skillHeading) {
       if (currentSkill?.id) {
-        if (currentSkill.refusalRules.length === 0 && currentSkill.legacySafety) {
-          currentSkill.refusalRules = parseRules(currentSkill.legacySafety);
-        }
-        delete currentSkill.legacySafety;
-        skills.push(currentSkill);
+        skills.push(finalizeParsedSkill(currentSkill));
       }
 
       currentSkill = {
@@ -230,11 +240,7 @@ function parseSkillsMarkdown(content) {
   }
 
   if (currentSkill?.id) {
-    if (currentSkill.refusalRules.length === 0 && currentSkill.legacySafety) {
-      currentSkill.refusalRules = parseRules(currentSkill.legacySafety);
-    }
-    delete currentSkill.legacySafety;
-    skills.push(currentSkill);
+    skills.push(finalizeParsedSkill(currentSkill));
   }
 
   return skills;

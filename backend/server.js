@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
-import { createHash, timingSafeEqual } from 'crypto';
+import { timingSafeEqual } from 'crypto';
 import {
   getSkillsCatalog,
   initializeSkillsCatalog,
@@ -11,7 +11,6 @@ import {
 const app = express();
 const PORT = process.env.PORT || 4000;
 const AGENT_API_TOKEN = process.env.AGENT_API_TOKEN || '';
-const AGENT_API_TOKEN_HASH = createHash('sha256').update(AGENT_API_TOKEN, 'utf8').digest();
 const startupCatalog = initializeSkillsCatalog();
 
 if (startupCatalog.warning) {
@@ -38,10 +37,13 @@ function requireAgentApiToken(req, res, next) {
   }
 
   const providedToken = req.header('x-agent-api-token') || '';
-  const provided = createHash('sha256').update(providedToken, 'utf8').digest();
-  const isValidToken = timingSafeEqual(AGENT_API_TOKEN_HASH, provided);
+  const expectedTokenBuffer = Buffer.from(AGENT_API_TOKEN, 'utf8');
+  const providedTokenBuffer = Buffer.from(providedToken, 'utf8');
+  const isValidToken = expectedTokenBuffer.length === providedTokenBuffer.length
+    && timingSafeEqual(expectedTokenBuffer, providedTokenBuffer);
 
   if (!isValidToken) {
+    res.set('WWW-Authenticate', 'Token realm="agent-api"');
     return res.status(401).json({ error: 'Unauthorized' });
   }
 

@@ -38,6 +38,14 @@
 - Required Status: approved
 - Rule: Final go-live is blocked unless release approval is explicitly granted.
 
+## SaaS Delivery Baseline
+
+- Subscription and billing flows with transparent pricing and cancellation handling.
+- Role-based access, admin operations, and auditability for customer and operator actions.
+- Privacy-aware analytics, ad/consent controls, and data handling disclosures.
+- Reliability standards including monitoring, incident response, rollback, and release notes.
+- Accessibility-focused UX behavior and documentation quality for customer ease of use.
+
 ## Skill: Chief Architect Agent
 - ID: chief-architect
 - Role: Defines platform architecture, standards, and technical direction.
@@ -191,6 +199,17 @@
 - Required Gate: gate-3-test-approval
 - Quality Bar: Admin controls are secure, auditable, and role-aware.
 - Refusal Rules: Refuse admin features without auditability or access boundaries.
+
+## Skill: SaaS Product Ops Agent
+- ID: saas-product-ops-agent
+- Role: Ensures every build is SaaS-ready for monetization, operations, and customer lifecycle management.
+- What: Defines SaaS readiness requirements across subscriptions, plans, entitlements, tenant setup, churn controls, and support operations.
+- Inputs: product_strategy, monetization_strategy_spec, platform_operations_plan
+- Output: saas_readiness_spec
+- Dependencies: program-manager, monetization-agent, devops-sre-agent, admin-ops-agent
+- Required Gate: gate-5-release-approval
+- Quality Bar: SaaS lifecycle flows are complete, measurable, supportable, and compliant with platform policies.
+- Refusal Rules: Refuse release-readiness claims without billing integrity, entitlement logic, and operational support coverage.
 
 ## Skill: Playwright Browser Automator
 - ID: playwright-browser-automator
