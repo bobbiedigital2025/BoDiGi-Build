@@ -119,7 +119,7 @@ Invoke payloads should include:
 Optional environment override:
 
 - `SKILLS_MD_PATH=/absolute/path/to/skills.md`
-- `AGENT_API_TOKEN=<token>` (if set, requests to `/api/agent/skills` and `/api/agent/skills/:skillId/invoke` must include `x-agent-api-token`)
+- `AGENT_API_TOKEN=<token>` (if set, requests to `/api/agent/skills`, `/api/agent/skills/:skillId/invoke`, and `/api/agent/deployment/profiles` must include `x-agent-api-token`)
 - `DEPLOYMENT_PROFILE_MODE=user-preferred`
 - `DEFAULT_DEPLOYMENT_PROFILE=vercel-docker-n8n`
 - `MCP_PROTOCOL_VERSION=2`
@@ -128,6 +128,7 @@ Default deployment profile behavior:
 - Prefer `vercel-docker-n8n` for deployment-related skill invocations.
 - Allow override by passing `deployment_profile` in invoke payload.
 - Auto-inject selected profile details and MCP-2 version context into deployment skill inputs.
+- Set `DEPLOYMENT_PROFILE_MODE=locked-default` to disable request-level profile overrides.
 
 ## 🔒 Licensing & Terms
 

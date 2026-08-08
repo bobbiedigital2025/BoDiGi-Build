@@ -3,6 +3,7 @@ import express from 'express';
 import cors from 'cors';
 import { timingSafeEqual } from 'crypto';
 import {
+  deploymentSkillIds,
   getSkillsCatalog,
   initializeSkillsCatalog,
   invokeSkill,
@@ -16,12 +17,6 @@ const app = express();
 const PORT = process.env.PORT || 4000;
 const AGENT_API_TOKEN = process.env.AGENT_API_TOKEN || '';
 const startupCatalog = initializeSkillsCatalog();
-const deploymentSkillIds = new Set([
-  'deployment-platform-agent',
-  'deployment-validation-agent',
-  'deployment-verification-agent',
-  'n8n-automation-agent',
-]);
 
 if (startupCatalog.warning) {
   console.warn(startupCatalog.warning);
@@ -49,8 +44,14 @@ function requireAgentApiToken(req, res, next) {
   const providedToken = req.header('x-agent-api-token') || '';
   const expectedTokenBuffer = Buffer.from(AGENT_API_TOKEN, 'utf8');
   const providedTokenBuffer = Buffer.from(providedToken, 'utf8');
-  const isValidToken = expectedTokenBuffer.length === providedTokenBuffer.length
-    && timingSafeEqual(expectedTokenBuffer, providedTokenBuffer);
+  const maxLength = Math.max(expectedTokenBuffer.length, providedTokenBuffer.length, 1);
+  const paddedExpectedToken = Buffer.alloc(maxLength);
+  const paddedProvidedToken = Buffer.alloc(maxLength);
+  expectedTokenBuffer.copy(paddedExpectedToken);
+  providedTokenBuffer.copy(paddedProvidedToken);
+
+  const tokensMatch = timingSafeEqual(paddedExpectedToken, paddedProvidedToken);
+  const isValidToken = tokensMatch && expectedTokenBuffer.length === providedTokenBuffer.length;
 
   if (!isValidToken) {
     res.set('WWW-Authenticate', 'Token realm="agent-api"');
@@ -108,15 +109,26 @@ app.get('/api/agent/skills', requireAgentApiToken, (_req, res) => {
 // Agent skill invoke endpoint
 app.post('/api/agent/skills/:skillId/invoke', requireAgentApiToken, (req, res) => {
   const { skillId } = req.params;
-  const payload = req.body || {};
-
+  const incomingPayload = req.body && typeof req.body === 'object' && !Array.isArray(req.body)
+    ? req.body
+    : {};
+  const catalog = getSkillsCatalog();
+  const skill = catalog.skills.find((entry) => entry.id === skillId);
+  const allowedFields = new Set([
+    ...(skill?.inputs || []),
+    'completedSkills',
+    'approvalGates',
+  ]);
   if (deploymentSkillIds.has(skillId)) {
-    const preferredDeployment = resolvePreferredDeploymentProfile(payload.deployment_profile);
-    payload.deployment_profile = preferredDeployment.profile.id;
-    payload.deployment_profile_mode = preferredDeployment.mode;
-    payload.deployment_profile_source = preferredDeployment.source;
-    payload.mcp_version = preferredDeployment.profile.mcpVersion || '2';
-    payload.deployment_profile_details = preferredDeployment.profile;
+    allowedFields.add('deployment_profile');
+    allowedFields.add('mcp_version');
+  }
+  const payload = {};
+
+  for (const fieldName of allowedFields) {
+    if (Object.prototype.hasOwnProperty.call(incomingPayload, fieldName)) {
+      payload[fieldName] = incomingPayload[fieldName];
+    }
   }
 
   const result = invokeSkill(skillId, payload);

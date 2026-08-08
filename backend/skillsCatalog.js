@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { resolvePreferredDeploymentProfile } from './deploymentProfiles.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -28,6 +29,13 @@ const mappedSkillActions = {
   'deployment-validation-agent': 'release-quality-agent',
   'deployment-verification-agent': 'post-release-agent',
 };
+
+export const deploymentSkillIds = new Set([
+  'deployment-platform-agent',
+  'deployment-validation-agent',
+  'deployment-verification-agent',
+  'n8n-automation-agent',
+]);
 
 function resolveSkillsPath() {
   return process.env.SKILLS_MD_PATH || defaultSkillsPath;
@@ -302,7 +310,7 @@ function hasUsableValue(value) {
   }
 
   if (Array.isArray(value)) {
-    return value.some((item) => hasUsableValue(item));
+    return value.length > 0 && value.every((item) => hasUsableValue(item));
   }
 
   return true;
@@ -328,6 +336,23 @@ export function invokeSkill(skillId, payload = {}) {
       ok: false,
       error: `Unknown skill: ${skillId}`,
     };
+  }
+
+  if (deploymentSkillIds.has(skillId)) {
+    let preferredDeployment = null;
+    const needsDeploymentProfile = !hasUsableValue(payload.deployment_profile);
+    const needsMcpVersion = !hasUsableValue(payload.mcp_version);
+
+    if (needsDeploymentProfile || needsMcpVersion) {
+      preferredDeployment = resolvePreferredDeploymentProfile(payload.deployment_profile);
+    }
+
+    if (!hasUsableValue(payload.deployment_profile)) {
+      payload.deployment_profile = preferredDeployment?.profile?.id || 'vercel-docker-n8n';
+    }
+    if (!hasUsableValue(payload.mcp_version)) {
+      payload.mcp_version = preferredDeployment?.profile?.mcpVersion || '2';
+    }
   }
 
   const missingInputs = skill.inputs.filter((inputName) => !hasUsableValue(payload[inputName]));
@@ -374,6 +399,13 @@ export function invokeSkill(skillId, payload = {}) {
     }
   }
 
+  const promptInputs = {};
+  for (const inputName of skill.inputs) {
+    if (Object.prototype.hasOwnProperty.call(payload, inputName)) {
+      promptInputs[inputName] = payload[inputName];
+    }
+  }
+
   return {
     ok: true,
     action: mappedSkillActions[skillId] || 'general-agent',
@@ -388,7 +420,7 @@ export function invokeSkill(skillId, payload = {}) {
       objective: skill.what,
       qualityBar: skill.qualityBar,
       refusalRules: skill.refusalRules,
-      inputs: payload,
+      inputs: promptInputs,
     },
   };
 }

@@ -122,8 +122,11 @@ export function resolvePreferredDeploymentProfile(requestedProfileId = '') {
   const mode = getDeploymentProfileMode();
   const normalizedRequestedId = normalizeText(requestedProfileId);
   const defaultProfileId = normalizeText(getDefaultDeploymentProfileId());
+  const allowRequestOverride = mode !== 'locked-default';
 
-  const requested = deploymentProfiles.find((profile) => normalizeText(profile.id) === normalizedRequestedId);
+  const requested = allowRequestOverride
+    ? deploymentProfiles.find((profile) => normalizeText(profile.id) === normalizedRequestedId)
+    : null;
   if (requested) {
     return {
       mode,
@@ -143,10 +146,17 @@ export function resolvePreferredDeploymentProfile(requestedProfileId = '') {
     };
   }
 
+  const fallbackProfile = deploymentProfiles[0] || {
+    id: DEFAULT_PROFILE_ID,
+    name: 'Default Deployment Profile',
+    description: 'Fallback deployment profile.',
+    mcpVersion: DEFAULT_MCP_VERSION,
+  };
+
   return {
     mode,
     source: 'fallback',
     defaultProfileId: deploymentProfiles[0]?.id || DEFAULT_PROFILE_ID,
-    profile: deploymentProfiles[0],
+    profile: fallbackProfile,
   };
 }

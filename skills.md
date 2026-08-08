@@ -223,7 +223,7 @@
 - ID: deployment-platform-agent
 - Role: Defines deployment profile strategy and infrastructure topology for release.
 - What: Selects preferred deployment profile and produces environment topology using Vercel + Docker defaults unless explicitly overridden, with MCP-2 compatibility requirements.
-- Inputs: architecture_decision_record, deployment_requirements, deployment_profile
+- Inputs: architecture_decision_record, deployment_requirements, deployment_profile, mcp_version
 - Output: deployment_profile_plan
 - Dependencies: chief-architect, devops-sre-agent
 - Required Gate: gate-5-release-approval
@@ -234,7 +234,7 @@
 - ID: n8n-automation-agent
 - Role: Implements lifecycle automation workflows for release operations.
 - What: Designs n8n hooks for build/deploy triggers, health checks and alerts, rollback triggers, and scheduled maintenance with MCP-2 event-aware orchestration.
-- Inputs: deployment_profile_plan, release_strategy, operational_channels
+- Inputs: deployment_profile_plan, release_strategy, operational_channels, mcp_version
 - Output: n8n_automation_spec
 - Dependencies: deployment-platform-agent, devops-sre-agent
 - Required Gate: gate-6-deployment-approval
@@ -245,7 +245,7 @@
 - ID: deployment-validation-agent
 - Role: Verifies pre-deploy quality and security readiness.
 - What: Executes and validates lint/build/tests, security checks, and deployment config completeness for profile-specific requirements.
-- Inputs: changed_paths, ci_results, security_results, deployment_profile
+- Inputs: changed_paths, ci_results, security_results, deployment_profile, mcp_version
 - Output: predeploy_validation_report
 - Dependencies: qa-test-agent, security-agent, deployment-platform-agent
 - Required Gate: gate-6-deployment-approval
@@ -256,7 +256,7 @@
 - ID: deployment-verification-agent
 - Role: Confirms post-deploy health and rollback safety.
 - What: Runs smoke, uptime, and API checks, then validates rollback readiness after deployment.
-- Inputs: release_id, deployment_profile, health_endpoints, smoke_tests
+- Inputs: release_id, deployment_profile, health_endpoints, smoke_tests, mcp_version
 - Output: postdeploy_verification_report
 - Dependencies: deployment-validation-agent, qa-test-agent, n8n-automation-agent
 - Required Gate: gate-6-deployment-approval
