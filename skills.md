@@ -349,3 +349,81 @@ setup-matt-pocock-skills. Invoke them in order: triage → to-spec → to-ticket
 - Required Gate: gate-2-build-approval
 - Quality Bar: All existing tests pass. PR description references the ticket number. No secrets committed. Code matches existing file style.
 - Refusal Rules: Refuse to implement changes that skip gate requirements. Refuse to commit .env files. Refuse to modify unrelated tests.
+
+---
+
+## Grilling Skills (Design-Before-Code)
+
+These three skills implement Matt Pocock's grilling workflow: relentlessly question until you reach
+shared understanding, then either implement directly or hand off via a PRD artifact. Always grill
+before building anything non-trivial. Use a large frontier model (not a small/fast model) for
+grilling — you need parametric knowledge to surface creative suggestions.
+
+Grilling pipeline: /grill-with-docs → (prototype if needed) → /grill-me → /2PRD → implement
+
+Key rules from the grilling methodology:
+- Only ask low-fidelity questions (answerable without prototypes or images). Handoff high-fidelity questions to a prototyping session.
+- Keep scope small enough to stay in the "smart zone" (under ~120k tokens). Break large scopes into smaller grillable chunks first.
+- Be active, not passive — steer the conversation, stop planning when it's time to build.
+- Never clear context before writing a PRD — every grilling decision has value.
+- Run two parallel grilling sessions to double throughput.
+
+---
+
+## Skill: Grill With Docs
+- ID: grill-with-docs
+- Role: Pre-build Alignment Interviewer (docs-first)
+- What: Reads all relevant context files (CONTEXT.md, docs/agents/domain.md, skills.md, any
+  spec or design doc you pass in) and then asks relentless low-fidelity questions until you and
+  the agent reach a shared understanding of what to build. Surfaces assumptions, missing decisions,
+  and integration points before a single line of code is written. Use this when you have existing
+  docs or a spec to align on first. Invoke as /grill-with-docs.
+- Inputs: topic, docs (file paths or inline text to read before grilling)
+- Output: grilling_session_summary (shared understanding, open questions, decisions made)
+- Dependencies: none
+- Required Gate: gate-0-scope-approval
+- Invokable: false (user-initiated only — type /grill-with-docs to start)
+- Quality Bar: Every session ends with a numbered list of decisions made and any unresolved
+  high-fidelity questions handed off to a prototyping session. Scope stays small enough to avoid
+  the context-window dumb zone (~120k tokens).
+- Refusal Rules: Do not ask high-fidelity questions (UI feel, layout detail) — hand those off.
+  Do not continue grilling if scope has grown beyond one logical unit of work. Do not replace
+  engineering judgment — surface options, don't prescribe.
+
+## Skill: Grill Me
+- ID: grill-me
+- Role: Pre-build Alignment Interviewer (open scope)
+- What: Asks you relentless low-fidelity questions about what you want to build, starting from
+  a blank slate. No docs required. The agent uses its parametric knowledge to surface things you
+  haven't thought of yet — edge cases, integration points, failure modes, scale concerns.
+  Continues until a shared understanding is reached. Use this for greenfield features or when
+  you have no docs yet. Invoke as /grill-me.
+- Inputs: topic
+- Output: grilling_session_summary (decisions made, open questions, recommended next step)
+- Dependencies: none
+- Required Gate: gate-0-scope-approval
+- Invokable: false (user-initiated only — type /grill-me to start)
+- Quality Bar: Uses a large frontier model only (never a small/fast model). Each question is
+  low-fidelity and answerable in one sentence. Session ends with a clear recommended next action:
+  implement (if context budget remains) or /2PRD (if context is running low).
+- Refusal Rules: Do not ask more than 12 questions without summarising decisions so far. Do not
+  ask high-fidelity questions — redirect to prototype handoff. Do not grill on scope larger than
+  one feature or one ticket.
+
+## Skill: 2PRD
+- ID: 2prd
+- Role: Product Requirements Document Author
+- What: Converts a completed grilling session into a structured PRD (Product Requirements Document)
+  that preserves every design decision made during grilling. The PRD becomes the handoff artifact
+  when context budget is running low, so no decisions are lost when starting a fresh implementation
+  session. Output is a markdown file committed to the repo under docs/prd/.
+- Inputs: grilling_session_summary, feature_name
+- Output: prd_file_path (docs/prd/<feature-name>.md committed to repo)
+- Dependencies: grill-me or grill-with-docs
+- Required Gate: gate-0-scope-approval
+- Quality Bar: PRD must include: problem statement, acceptance criteria, decisions made, open
+  questions, affected files/modules, and recommended implementation order. Never omits decisions
+  from the grilling session — every token of design work is preserved.
+- Refusal Rules: Do not generate a PRD without a completed grilling session. Do not clear context
+  before writing the PRD — the grilling context is the source of truth. Do not include implementation
+  code in the PRD — that belongs in the implement skill.

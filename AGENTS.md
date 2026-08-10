@@ -59,6 +59,14 @@ Key skill IDs (invoke via API):
 | `monetization-agent` | Stripe billing, plans, webhooks |
 | `deployment-validation-agent` | Pre/post deploy checks |
 | `saas-product-ops-agent` | SaaS delivery baseline |
+| `triage` | Label and comment on new GitHub issues |
+| `to-spec` | Turn a triaged issue into a technical spec |
+| `to-tickets` | Break a spec into deliverable sub-tickets |
+| `wayfinder` | Find files to read before implementing a ticket |
+| `implement` | Implement a ticket and open a PR |
+| `grill-with-docs` | Pre-build alignment session (docs-first) — invoke as /grill-with-docs |
+| `grill-me` | Pre-build alignment session (open scope) — invoke as /grill-me |
+| `2prd` | Convert a grilling session into a PRD handoff artifact |
 
 Full catalog: see `skills.md`.
 
@@ -69,3 +77,21 @@ ADRs live in `docs/adr/`. Create one for any significant architecture decision u
 ```
 docs/adr/NNNN-short-title.md
 ```
+
+## Product Requirements Documents
+
+PRDs live in `docs/prd/`. Created by the `/2PRD` skill at the end of a grilling session.
+Pass a PRD as context when starting a new implementation session:
+
+```
+/grill-with-docs topic="..." docs="docs/prd/<feature>.md"
+```
+
+## Grilling workflow
+
+Design before you code. Start every non-trivial feature with:
+
+1. `/grill-with-docs` — if you have existing docs/spec to align on
+2. `/grill-me` — if starting from scratch
+3. `/2PRD` — when context is running low, preserve decisions as a PRD
+4. `implement` — implement using the PRD as context
