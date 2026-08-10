@@ -273,3 +273,79 @@
 - Required Gate: gate-3-test-approval
 - Quality Bar: Scenarios are deterministic, reproducible, and mapped to acceptance criteria.
 - Refusal Rules: Refuse credential harvesting, account takeover, and policy-violating automation.
+
+---
+
+## Matt Pocock Daily Skills
+
+These five skills are adapted from the mattpocock/skills package. They form a complete
+issue-to-implementation pipeline and rely on the docs/agents/ config files written by
+setup-matt-pocock-skills. Invoke them in order: triage → to-spec → to-tickets → wayfinder → implement.
+
+---
+
+## Skill: Triage
+- ID: triage
+- Role: Issue Triager
+- What: Reads a new GitHub issue, infers intent and severity, and moves it from `needs-triage`
+  to the correct label (`needs-info`, `ready-for-agent`, `ready-for-human`, or `wontfix`).
+  Reads docs/agents/issue-tracker.md to know where issues live and docs/agents/triage-labels.md
+  for valid label names. Posts a triage comment explaining the decision.
+- Inputs: issue_number
+- Output: triage_decision (label applied, comment posted, reasoning)
+- Dependencies: none
+- Required Gate: gate-0-scope-approval
+- Quality Bar: Every triage decision includes a one-sentence rationale. Never applies wontfix without human confirmation.
+- Refusal Rules: Refuse to triage issues that contain credentials or personal data. Do not auto-close without human sign-off.
+
+## Skill: To Spec
+- ID: to-spec
+- Role: Specification Writer
+- What: Takes a triaged issue labelled `ready-for-agent` and produces a detailed technical spec.
+  Reads CONTEXT.md and docs/agents/domain.md to understand the stack. Spec includes: problem
+  statement, acceptance criteria, affected files/modules, edge cases, and test checklist.
+- Inputs: issue_number
+- Output: spec_markdown (spec comment posted on the issue, or returned as text)
+- Dependencies: triage
+- Required Gate: gate-0-scope-approval
+- Quality Bar: Spec must have explicit acceptance criteria and at least one edge case. No ambiguous "should" language — only "must" or "must not".
+- Refusal Rules: Refuse to spec security-sensitive changes without first consulting security-agent.
+
+## Skill: To Tickets
+- ID: to-tickets
+- Role: Ticket Breakdown Agent
+- What: Takes a completed spec and breaks it into the smallest independently deliverable
+  sub-issues. Each ticket has: title, one-sentence goal, files to touch, and a link back to the
+  parent issue. Uses docs/agents/issue-tracker.md to know where to create tickets (GitHub sub-issues or new issues with parent reference).
+- Inputs: issue_number, spec_markdown
+- Output: ticket_list (array of created sub-issue numbers or markdown list)
+- Dependencies: to-spec
+- Required Gate: gate-0-scope-approval
+- Quality Bar: Each ticket is completable in a single agent session. No ticket touches more than 5 files. Tickets are ordered by dependency.
+- Refusal Rules: Refuse to create tickets for work not covered by the spec. Do not create tickets that bypass approval gates.
+
+## Skill: Wayfinder
+- ID: wayfinder
+- Role: Codebase Navigator
+- What: Given a ticket, finds the exact files, functions, and types the implementing agent needs
+  to read before starting. Reads CONTEXT.md, docs/agents/domain.md, and the repo file tree.
+  Returns a prioritised reading list with a one-line reason for each file.
+- Inputs: ticket_description, issue_number
+- Output: reading_list (ordered array of file paths with annotations)
+- Dependencies: to-tickets
+- Required Gate: gate-1-architecture-approval
+- Quality Bar: Reading list must include at minimum: the entry point, the affected module, and any related test file. Never lists more than 12 files.
+- Refusal Rules: Refuse to include .env files or files containing secrets in the reading list.
+
+## Skill: Implement
+- ID: implement
+- Role: Code Implementer
+- What: Implements a single ticket using the context from wayfinder. Makes the smallest correct
+  change that satisfies the ticket's acceptance criteria. Follows all conventions in AGENTS.md
+  and CONTEXT.md. Runs lint and tests after changes. Creates a commit and opens a PR.
+- Inputs: ticket_description, issue_number, reading_list
+- Output: pull_request_url (PR opened, commit pushed, tests passing)
+- Dependencies: wayfinder
+- Required Gate: gate-2-build-approval
+- Quality Bar: All existing tests pass. PR description references the ticket number. No secrets committed. Code matches existing file style.
+- Refusal Rules: Refuse to implement changes that skip gate requirements. Refuse to commit .env files. Refuse to modify unrelated tests.
